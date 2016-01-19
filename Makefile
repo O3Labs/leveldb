@@ -131,7 +131,6 @@ clean:
 	-rm -rf $(SHARED_OUTDIR)
 	-rm -rf $(STATIC_OUTDIR)
 	-rm -f build_config.mk
-	-rm -f leveldb*
 	-rm -rf ios-x86/* ios-arm/*
 
 $(SHARED_OUTDIR):
@@ -213,95 +212,95 @@ $(STATIC_LIB): $(STATIC_LIBOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(STATIC_LIBOBJECTS)
 
-$(STATIC_OUTDIR)/db_bench: $(STATIC_OUTDIR)/db/db_bench.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
+$(STATIC_OUTDIR)/db_bench: Makefile $(STATIC_OUTDIR)/db/db_bench.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/db_bench.o $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/db_bench_sqlite3: $(STATIC_OUTDIR)/doc/bench/db_bench_sqlite3.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
+$(STATIC_OUTDIR)/db_bench_sqlite3: Makefile $(STATIC_OUTDIR)/doc/bench/db_bench_sqlite3.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/doc/bench/db_bench_sqlite3.o $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
 
-$(STATIC_OUTDIR)/db_bench_tree_db: $(STATIC_OUTDIR)/doc/bench/db_bench_tree_db.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
+$(STATIC_OUTDIR)/db_bench_tree_db: Makefile $(STATIC_OUTDIR)/doc/bench/db_bench_tree_db.o $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/doc/bench/db_bench_tree_db.o $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lkyotocabinet $(LIBS)
 
-$(STATIC_OUTDIR)/leveldbutil: $(STATIC_OUTDIR)/db/leveldbutil.o $(STATIC_LIBOBJECTS)
+$(STATIC_OUTDIR)/leveldbutil: Makefile $(STATIC_OUTDIR)/db/leveldbutil.o $(STATIC_LIBOBJECTS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/leveldbutil.o $(STATIC_LIBOBJECTS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/arena_test: $(STATIC_OUTDIR)/util/arena_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/arena_test: Makefile $(STATIC_OUTDIR)/util/arena_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/arena_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/autocompact_test: $(STATIC_OUTDIR)/db/autocompact_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/autocompact_test: Makefile $(STATIC_OUTDIR)/db/autocompact_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/autocompact_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/bloom_test: $(STATIC_OUTDIR)/util/bloom_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/bloom_test: Makefile $(STATIC_OUTDIR)/util/bloom_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/bloom_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/c_test: $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/c_test: Makefile $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/cache_test: $(STATIC_OUTDIR)/util/cache_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/cache_test: Makefile $(STATIC_OUTDIR)/util/cache_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/cache_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/coding_test: $(STATIC_OUTDIR)/util/coding_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/coding_test: Makefile $(STATIC_OUTDIR)/util/coding_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/coding_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/corruption_test: $(STATIC_OUTDIR)/db/corruption_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/corruption_test: Makefile $(STATIC_OUTDIR)/db/corruption_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/corruption_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/crc32c_test: $(STATIC_OUTDIR)/util/crc32c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/crc32c_test: Makefile $(STATIC_OUTDIR)/util/crc32c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/crc32c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/db_test: $(STATIC_OUTDIR)/db/db_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/db_test: Makefile $(STATIC_OUTDIR)/db/db_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/db_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/dbformat_test: $(STATIC_OUTDIR)/db/dbformat_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/dbformat_test: Makefile $(STATIC_OUTDIR)/db/dbformat_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/dbformat_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/env_test: $(STATIC_OUTDIR)/util/env_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/env_test: Makefile $(STATIC_OUTDIR)/util/env_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/env_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/fault_injection_test: $(STATIC_OUTDIR)/db/fault_injection_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/fault_injection_test: Makefile $(STATIC_OUTDIR)/db/fault_injection_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/fault_injection_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/filename_test: $(STATIC_OUTDIR)/db/filename_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/filename_test: Makefile $(STATIC_OUTDIR)/db/filename_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/filename_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/filter_block_test: $(STATIC_OUTDIR)/table/filter_block_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/filter_block_test: Makefile $(STATIC_OUTDIR)/table/filter_block_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/table/filter_block_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/hash_test: $(STATIC_OUTDIR)/util/hash_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/hash_test: Makefile $(STATIC_OUTDIR)/util/hash_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/hash_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/issue178_test: $(STATIC_OUTDIR)/issues/issue178_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/issue178_test: Makefile $(STATIC_OUTDIR)/issues/issue178_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/issues/issue178_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/issue200_test: $(STATIC_OUTDIR)/issues/issue200_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/issue200_test: Makefile $(STATIC_OUTDIR)/issues/issue200_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/issues/issue200_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/log_test: $(STATIC_OUTDIR)/db/log_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/log_test: Makefile $(STATIC_OUTDIR)/db/log_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/log_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/recovery_test: $(STATIC_OUTDIR)/db/recovery_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/recovery_test: Makefile $(STATIC_OUTDIR)/db/recovery_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/recovery_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/table_test: $(STATIC_OUTDIR)/table/table_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/table_test: Makefile $(STATIC_OUTDIR)/table/table_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/table/table_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/skiplist_test: $(STATIC_OUTDIR)/db/skiplist_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/skiplist_test: Makefile $(STATIC_OUTDIR)/db/skiplist_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/skiplist_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/version_edit_test: $(STATIC_OUTDIR)/db/version_edit_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/version_edit_test: Makefile $(STATIC_OUTDIR)/db/version_edit_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/version_edit_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/version_set_test: $(STATIC_OUTDIR)/db/version_set_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/version_set_test: Makefile $(STATIC_OUTDIR)/db/version_set_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/version_set_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/write_batch_test: $(STATIC_OUTDIR)/db/write_batch_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+$(STATIC_OUTDIR)/write_batch_test: Makefile $(STATIC_OUTDIR)/db/write_batch_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/write_batch_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_MEMENVLIB): $(STATIC_MEMENVOBJECTS)
+$(STATIC_MEMENVLIB): Makefile $(STATIC_MEMENVOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(STATIC_MEMENVOBJECTS)
 
-$(STATIC_OUTDIR)/memenv_test: $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS)
+$(STATIC_OUTDIR)/memenv_test: Makefile $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS) -o $@ $(LIBS)
 
 ifeq ($(PLATFORM), IOS)
