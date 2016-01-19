@@ -26,13 +26,14 @@ CXXFLAGS += -I. -I./include $(PLATFORM_CXXFLAGS) $(OPT)
 LDFLAGS += $(PLATFORM_LDFLAGS)
 LIBS += $(PLATFORM_LIBS)
 
-OBJDIR=static
+STATIC_OUTDIR=static
+SHARED_OUTDIR=shared
 
-LIBOBJECTS := $(addprefix $(OBJDIR)/, $(SOURCES:.cc=.o))
-MEMENVOBJECTS := $(addprefix $(OBJDIR)/, $(MEMENV_SOURCES:.cc=.o))
+LIBOBJECTS := $(addprefix $(STATIC_OUTDIR)/, $(SOURCES:.cc=.o))
+MEMENVOBJECTS := $(addprefix $(STATIC_OUTDIR)/, $(MEMENV_SOURCES:.cc=.o))
 
-TESTUTIL := $(OBJDIR)/util/testutil.o
-TESTHARNESS := $(OBJDIR)/util/testharness.o $(TESTUTIL)
+TESTUTIL := $(STATIC_OUTDIR)/util/testutil.o
+TESTHARNESS := $(STATIC_OUTDIR)/util/testharness.o $(TESTUTIL)
 
 # Note: iOS should probably be using libtool, not ar.
 ifeq ($(PLATFORM), IOS)
@@ -77,14 +78,15 @@ BENCHMARKS = \
 
 # Put the object files in a subdirectory, but the application at the top of the object dir.
 PROGNAMES := $(notdir $(TESTS) $(UTILS))
-PROGRAMS := $(addprefix $(OBJDIR)/, $(PROGNAMES))
 
-TESTOBJS := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TESTS)))
-UTILOBJS := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(UTILS)))
-ALLOBJS := $(LIBOBJECTS) $(MEMENVOBJECTS) $(TESTOBJS) $(UTILOBJS) $(TESTHARNESS)
+STATIC_PROGRAMS := $(addprefix $(STATIC_OUTDIR)/, $(PROGNAMES))
 
-STATICLIB = $(OBJDIR)/libleveldb.a
-STATICMEMENVLIB = $(OBJDIR)/libmemenv.a
+STATIC_TESTOBJS := $(addprefix $(STATIC_OUTDIR)/, $(addsuffix .o, $(TESTS)))
+STATIC_UTILOBJS := $(addprefix $(STATIC_OUTDIR)/, $(addsuffix .o, $(UTILS)))
+STATIC_ALLOBJS := $(LIBOBJECTS) $(MEMENVOBJECTS) $(STATIC_TESTOBJS) $(STATIC_UTILOBJS) $(TESTHARNESS)
+
+STATIC_LIB = $(STATIC_OUTDIR)/libleveldb.a
+STATIC_MEMENVLIB = $(STATIC_OUTDIR)/libmemenv.a
 
 default: all
 
@@ -92,170 +94,171 @@ default: all
 ifneq ($(PLATFORM_SHARED_EXT),)
 
 ifneq ($(PLATFORM_SHARED_VERSIONED),true)
-SHARED1 = libleveldb.$(PLATFORM_SHARED_EXT)
-SHARED2 = $(SHARED1)
-SHARED3 = $(SHARED1)
-SHAREDLIB = $(SHARED1)
+SHARED_LIB1 = libleveldb.$(PLATFORM_SHARED_EXT)
+SHARED_LIB2 = $(SHARED_LIB1)
+SHARED_LIB3 = $(SHARED_LIB1)
+SHARED_LIBS = $(SHARED_LIB1)
 else
 # Update db.h if you change these.
-SHARED_MAJOR = 1
-SHARED_MINOR = 18
-SHARED1 = libleveldb.$(PLATFORM_SHARED_EXT)
-SHARED2 = $(SHARED1).$(SHARED_MAJOR)
-SHARED3 = $(SHARED1).$(SHARED_MAJOR).$(SHARED_MINOR)
-SHAREDLIB = $(SHARED1) $(SHARED2) $(SHARED3)
-$(SHARED1): $(SHARED3)
-	ln -fs $(SHARED3) $(SHARED1)
-$(SHARED2): $(SHARED3)
-	ln -fs $(SHARED3) $(SHARED2)
+SHARED_VERSION_MAJOR = 1
+SHARED_VERSION_MINOR = 18
+SHARED_LIB1 = libleveldb.$(PLATFORM_SHARED_EXT)
+SHARED_LIB2 = $(SHARED_LIB1).$(SHARED_VERSION_MAJOR)
+SHARED_LIB3 = $(SHARED_LIB1).$(SHARED_VERSION_MAJOR).$(SHARED_VERSION_MINOR)
+SHARED_LIBS = $(SHARED_LIB1) $(SHARED_LIB2) $(SHARED_LIB3)
+$(SHARED_LIB1): $(SHARED_LIB3)
+	ln -fs $(SHARED_LIB3) $(SHARED_LIB1)
+$(SHARED_LIB2): $(SHARED_LIB3)
+	ln -fs $(SHARED_LIB3) $(SHARED_LIB2)
 endif
 
-$(SHARED3):
-	$(CXX) $(LDFLAGS) $(PLATFORM_SHARED_LDFLAGS)$(SHARED2) $(CXXFLAGS) $(PLATFORM_SHARED_CFLAGS) $(SOURCES) -o $(SHARED3) $(LIBS)
+$(SHARED_LIB3):
+	$(CXX) $(LDFLAGS) $(PLATFORM_SHARED_LDFLAGS)$(SHARED_LIB2) $(CXXFLAGS) $(PLATFORM_SHARED_CFLAGS) $(SOURCES) -o $(SHARED_LIB3) $(LIBS)
 
 endif  # PLATFORM_SHARED_EXT
 
-all: $(SHAREDLIB) $(STATICLIB) $(PROGRAMS)
+all: $(SHARED_LIBS) $(STATIC_LIB) $(STATIC_PROGRAMS)
 
-check: all $(PROGRAMS)
-	for t in $(notdir $(TESTS)); do echo "***** Running $$t"; $(OBJDIR)/$$t || exit 1; done
+check: $(STATIC_PROGRAMS)
+	for t in $(notdir $(TESTS)); do echo "***** Running $$t"; $(STATIC_OUTDIR)/$$t || exit 1; done
 
 clean:
-	-rm -rf $(OBJDIR)
+	-rm -rf $(SHARED_OUTDIR)
+	-rm -rf $(STATIC_OUTDIR)
 	-rm -f build_config.mk
 	-rm -f leveldb*
 	-rm -rf ios-x86/* ios-arm/*
 
-$(OBJDIR):
-	mkdir $(OBJDIR)
+$(STATIC_OUTDIR):
+	mkdir $(STATIC_OUTDIR)
 
-$(OBJDIR)/db: | $(OBJDIR)
-	mkdir $(OBJDIR)/db
+$(STATIC_OUTDIR)/db: | $(STATIC_OUTDIR)
+	mkdir $(STATIC_OUTDIR)/db
 
-$(OBJDIR)/doc/bench: | $(OBJDIR)
-	mkdir -p $(OBJDIR)/doc/bench
+$(STATIC_OUTDIR)/doc/bench: | $(STATIC_OUTDIR)
+	mkdir -p $(STATIC_OUTDIR)/doc/bench
 
-$(OBJDIR)/helpers/memenv: | $(OBJDIR)
-	mkdir -p $(OBJDIR)/helpers/memenv
+$(STATIC_OUTDIR)/helpers/memenv: | $(STATIC_OUTDIR)
+	mkdir -p $(STATIC_OUTDIR)/helpers/memenv
 
-$(OBJDIR)/issues: | $(OBJDIR)
-	mkdir $(OBJDIR)/issues
+$(STATIC_OUTDIR)/issues: | $(STATIC_OUTDIR)
+	mkdir $(STATIC_OUTDIR)/issues
 
-$(OBJDIR)/port: | $(OBJDIR)
-	mkdir $(OBJDIR)/port
+$(STATIC_OUTDIR)/port: | $(STATIC_OUTDIR)
+	mkdir $(STATIC_OUTDIR)/port
 
-$(OBJDIR)/table: | $(OBJDIR)
-	mkdir $(OBJDIR)/table
+$(STATIC_OUTDIR)/table: | $(STATIC_OUTDIR)
+	mkdir $(STATIC_OUTDIR)/table
 
-$(OBJDIR)/util: | $(OBJDIR)
-	mkdir $(OBJDIR)/util
+$(STATIC_OUTDIR)/util: | $(STATIC_OUTDIR)
+	mkdir $(STATIC_OUTDIR)/util
 
 .PHONY: OBJDIRS
 OBJDIRS: \
-	$(OBJDIR)/db \
-	$(OBJDIR)/doc/bench \
-	$(OBJDIR)/issues \
-	$(OBJDIR)/port \
-	$(OBJDIR)/table \
-	$(OBJDIR)/util \
-	$(OBJDIR)/helpers/memenv
+	$(STATIC_OUTDIR)/db \
+	$(STATIC_OUTDIR)/doc/bench \
+	$(STATIC_OUTDIR)/issues \
+	$(STATIC_OUTDIR)/port \
+	$(STATIC_OUTDIR)/table \
+	$(STATIC_OUTDIR)/util \
+	$(STATIC_OUTDIR)/helpers/memenv
 
-$(ALLOBJS): | OBJDIRS
+$(STATIC_ALLOBJS): | OBJDIRS
 
-$(STATICLIB): $(LIBOBJECTS)
+$(STATIC_LIB): $(LIBOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(LIBOBJECTS)
 
-$(OBJDIR)/db_bench: $(OBJDIR)/db/db_bench.o $(LIBOBJECTS) $(TESTUTIL)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/db_bench.o $(LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/db_bench: $(STATIC_OUTDIR)/db/db_bench.o $(LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/db_bench.o $(LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
 
-$(OBJDIR)/db_bench_sqlite3: $(OBJDIR)/doc/bench/db_bench_sqlite3.o $(LIBOBJECTS) $(TESTUTIL)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/doc/bench/db_bench_sqlite3.o $(LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
+$(STATIC_OUTDIR)/db_bench_sqlite3: $(STATIC_OUTDIR)/doc/bench/db_bench_sqlite3.o $(LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/doc/bench/db_bench_sqlite3.o $(LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
 
-$(OBJDIR)/db_bench_tree_db: $(OBJDIR)/doc/bench/db_bench_tree_db.o $(LIBOBJECTS) $(TESTUTIL)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/doc/bench/db_bench_tree_db.o $(LIBOBJECTS) $(TESTUTIL) -o $@ -lkyotocabinet $(LIBS)
+$(STATIC_OUTDIR)/db_bench_tree_db: $(STATIC_OUTDIR)/doc/bench/db_bench_tree_db.o $(LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/doc/bench/db_bench_tree_db.o $(LIBOBJECTS) $(TESTUTIL) -o $@ -lkyotocabinet $(LIBS)
 
-$(OBJDIR)/leveldbutil: $(OBJDIR)/db/leveldbutil.o $(LIBOBJECTS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/leveldbutil.o $(LIBOBJECTS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/leveldbutil: $(STATIC_OUTDIR)/db/leveldbutil.o $(LIBOBJECTS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/leveldbutil.o $(LIBOBJECTS) -o $@ $(LIBS)
 
-$(OBJDIR)/arena_test: $(OBJDIR)/util/arena_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/arena_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/arena_test: $(STATIC_OUTDIR)/util/arena_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/arena_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/autocompact_test: $(OBJDIR)/db/autocompact_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/autocompact_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/autocompact_test: $(STATIC_OUTDIR)/db/autocompact_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/autocompact_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/bloom_test: $(OBJDIR)/util/bloom_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/bloom_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/bloom_test: $(STATIC_OUTDIR)/util/bloom_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/bloom_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/c_test: $(OBJDIR)/db/c_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/c_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/c_test: $(STATIC_OUTDIR)/db/c_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/c_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/cache_test: $(OBJDIR)/util/cache_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/cache_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/cache_test: $(STATIC_OUTDIR)/util/cache_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/cache_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/coding_test: $(OBJDIR)/util/coding_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/coding_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/coding_test: $(STATIC_OUTDIR)/util/coding_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/coding_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/corruption_test: $(OBJDIR)/db/corruption_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/corruption_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/corruption_test: $(STATIC_OUTDIR)/db/corruption_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/corruption_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/crc32c_test: $(OBJDIR)/util/crc32c_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/crc32c_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/crc32c_test: $(STATIC_OUTDIR)/util/crc32c_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/crc32c_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/db_test: $(OBJDIR)/db/db_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/db_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/db_test: $(STATIC_OUTDIR)/db/db_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/db_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/dbformat_test: $(OBJDIR)/db/dbformat_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/dbformat_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/dbformat_test: $(STATIC_OUTDIR)/db/dbformat_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/dbformat_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/env_test: $(OBJDIR)/util/env_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/env_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/env_test: $(STATIC_OUTDIR)/util/env_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/env_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/fault_injection_test: $(OBJDIR)/db/fault_injection_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/fault_injection_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/fault_injection_test: $(STATIC_OUTDIR)/db/fault_injection_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/fault_injection_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/filename_test: $(OBJDIR)/db/filename_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/filename_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/filename_test: $(STATIC_OUTDIR)/db/filename_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/filename_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/filter_block_test: $(OBJDIR)/table/filter_block_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/table/filter_block_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/filter_block_test: $(STATIC_OUTDIR)/table/filter_block_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/table/filter_block_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/hash_test: $(OBJDIR)/util/hash_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/util/hash_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/hash_test: $(STATIC_OUTDIR)/util/hash_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/util/hash_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/issue178_test: $(OBJDIR)/issues/issue178_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/issues/issue178_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/issue178_test: $(STATIC_OUTDIR)/issues/issue178_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/issues/issue178_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/issue200_test: $(OBJDIR)/issues/issue200_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/issues/issue200_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/issue200_test: $(STATIC_OUTDIR)/issues/issue200_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/issues/issue200_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/log_test: $(OBJDIR)/db/log_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/log_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/log_test: $(STATIC_OUTDIR)/db/log_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/log_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/recovery_test: $(OBJDIR)/db/recovery_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/recovery_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/recovery_test: $(STATIC_OUTDIR)/db/recovery_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/recovery_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/table_test: $(OBJDIR)/table/table_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/table/table_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/table_test: $(STATIC_OUTDIR)/table/table_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/table/table_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/skiplist_test: $(OBJDIR)/db/skiplist_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/skiplist_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/skiplist_test: $(STATIC_OUTDIR)/db/skiplist_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/skiplist_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/version_edit_test: $(OBJDIR)/db/version_edit_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/version_edit_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/version_edit_test: $(STATIC_OUTDIR)/db/version_edit_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/version_edit_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/version_set_test: $(OBJDIR)/db/version_set_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/version_set_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/version_set_test: $(STATIC_OUTDIR)/db/version_set_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/version_set_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(OBJDIR)/write_batch_test: $(OBJDIR)/db/write_batch_test.o $(LIBOBJECTS) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/db/write_batch_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/write_batch_test: $(STATIC_OUTDIR)/db/write_batch_test.o $(LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/write_batch_test.o $(LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATICMEMENVLIB): $(MEMENVOBJECTS)
+$(STATIC_MEMENVLIB): $(MEMENVOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(MEMENVOBJECTS)
 
-$(OBJDIR)/memenv_test: $(OBJDIR)/helpers/memenv/memenv_test.o $(STATICMEMENVLIB) $(STATICLIB) $(TESTHARNESS)
-	$(CXX) $(LDFLAGS) $(OBJDIR)/helpers/memenv/memenv_test.o $(STATICMEMENVLIB) $(STATICLIB) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/memenv_test: $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS) -o $@ $(LIBS)
 
 ifeq ($(PLATFORM), IOS)
 # For iOS, create universal object files to be used on both the simulator and
@@ -279,9 +282,9 @@ IOSARCH=-arch armv6 -arch armv7 -arch armv7s -arch arm64
 	xcrun lipo ios-x86/$@ ios-arm/$@ -create -output $@
 
 else
-$(OBJDIR)/%.o: %.cc
+$(STATIC_OUTDIR)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJDIR)/%.o: %.c
+$(STATIC_OUTDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 endif
