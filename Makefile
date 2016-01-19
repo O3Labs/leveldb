@@ -148,14 +148,8 @@ $(STATIC_OUTDIR):
 $(STATIC_OUTDIR)/db: | $(STATIC_OUTDIR)
 	mkdir $(STATIC_OUTDIR)/db
 
-$(STATIC_OUTDIR)/doc/bench: | $(STATIC_OUTDIR)
-	mkdir -p $(STATIC_OUTDIR)/doc/bench
-
 $(STATIC_OUTDIR)/helpers/memenv: | $(STATIC_OUTDIR)
 	mkdir -p $(STATIC_OUTDIR)/helpers/memenv
-
-$(STATIC_OUTDIR)/issues: | $(STATIC_OUTDIR)
-	mkdir $(STATIC_OUTDIR)/issues
 
 $(STATIC_OUTDIR)/port: | $(STATIC_OUTDIR)
 	mkdir $(STATIC_OUTDIR)/port
@@ -169,8 +163,6 @@ $(STATIC_OUTDIR)/util: | $(STATIC_OUTDIR)
 .PHONY: STATIC_OBJDIRS
 STATIC_OBJDIRS: \
 	$(STATIC_OUTDIR)/db \
-	$(STATIC_OUTDIR)/doc/bench \
-	$(STATIC_OUTDIR)/issues \
 	$(STATIC_OUTDIR)/port \
 	$(STATIC_OUTDIR)/table \
 	$(STATIC_OUTDIR)/util \
@@ -181,15 +173,6 @@ $(SHARED_OUTDIR):
 
 $(SHARED_OUTDIR)/db: | $(SHARED_OUTDIR)
 	mkdir $(SHARED_OUTDIR)/db
-
-$(SHARED_OUTDIR)/doc/bench: | $(SHARED_OUTDIR)
-	mkdir -p $(SHARED_OUTDIR)/doc/bench
-
-$(SHARED_OUTDIR)/helpers/memenv: | $(SHARED_OUTDIR)
-	mkdir -p $(SHARED_OUTDIR)/helpers/memenv
-
-$(SHARED_OUTDIR)/issues: | $(SHARED_OUTDIR)
-	mkdir $(SHARED_OUTDIR)/issues
 
 $(SHARED_OUTDIR)/port: | $(SHARED_OUTDIR)
 	mkdir $(SHARED_OUTDIR)/port
@@ -203,12 +186,9 @@ $(SHARED_OUTDIR)/util: | $(SHARED_OUTDIR)
 .PHONY: SHARED_OBJDIRS
 SHARED_OBJDIRS: \
 	$(SHARED_OUTDIR)/db \
-	$(SHARED_OUTDIR)/doc/bench \
-	$(SHARED_OUTDIR)/issues \
 	$(SHARED_OUTDIR)/port \
 	$(SHARED_OUTDIR)/table \
-	$(SHARED_OUTDIR)/util \
-	$(SHARED_OUTDIR)/helpers/memenv
+	$(SHARED_OUTDIR)/util
 
 $(STATIC_ALLOBJS): | STATIC_OBJDIRS
 
