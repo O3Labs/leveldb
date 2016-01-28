@@ -65,22 +65,17 @@ CXXFLAGS += -I. -I./include $(PLATFORM_CXXFLAGS) $(OPT)
 LDFLAGS += $(PLATFORM_LDFLAGS)
 LIBS += $(PLATFORM_LIBS)
 
+SIMULATOR_OUTDIR=out-ios-x86
+DEVICE_OUTDIR=out-ios-arm
+
 ifeq ($(PLATFORM), IOS)
 # Note: iOS should probably be using libtool, not ar.
 AR=xcrun ar
 SIMULATORSDK=$(shell xcrun -sdk iphonesimulator --show-sdk-path)
 DEVICESDK=$(shell xcrun -sdk iphoneos --show-sdk-path)
-ifeq ($(TARGET_DEVICE), IPHONEOS)
-XCRUN := xcrun -sdk iphoneos
-CXXFLAGS += -isysroot "$(DEVICESDK)" -arch armv6 -arch armv7 -arch armv7s -arch arm64
-CFLAGS += -isysroot "$(DEVICESDK)" -arch armv6 -arch armv7 -arch armv7s -arch arm64
-STATIC_OUTDIR=out-ios-arm
-else ifeq ($(TARGET_DEVICE), IPHONESIMULATOR)
-XCRUN := xcrun -sdk iphonesimulator
-CXXFLAGS += -isysroot "$(SIMULATORSDK)" -arch i686 -arch x86_64
-CFLAGS += -isysroot "$(SIMULATORSDK)" -arch i686 -arch x86_64
-STATIC_OUTDIR=out-ios-x86
-endif
+DEVICE_CFLAGS = -isysroot "$(DEVICESDK)" -arch armv6 -arch armv7 -arch armv7s -arch arm64
+SIMULATOR_CFLAGS = -isysroot "$(SIMULATORSDK)" -arch i686 -arch x86_64
+STATIC_OUTDIR=out-ios-universal
 else
 STATIC_OUTDIR=out-static
 SHARED_OUTDIR=out-shared
@@ -91,6 +86,12 @@ endif
 STATIC_LIBOBJECTS := $(addprefix $(STATIC_OUTDIR)/, $(SOURCES:.cc=.o))
 STATIC_MEMENVOBJECTS := $(addprefix $(STATIC_OUTDIR)/, $(MEMENV_SOURCES:.cc=.o))
 
+DEVICE_LIBOBJECTS := $(addprefix $(DEVICE_OUTDIR)/, $(SOURCES:.cc=.o))
+DEVICE_MEMENVOBJECTS := $(addprefix $(DEVICE_OUTDIR)/, $(MEMENV_SOURCES:.cc=.o))
+
+SIMULATOR_LIBOBJECTS := $(addprefix $(SIMULATOR_OUTDIR)/, $(SOURCES:.cc=.o))
+SIMULATOR_MEMENVOBJECTS := $(addprefix $(SIMULATOR_OUTDIR)/, $(MEMENV_SOURCES:.cc=.o))
+
 SHARED_LIBOBJECTS := $(addprefix $(SHARED_OUTDIR)/, $(SOURCES:.cc=.o))
 SHARED_MEMENVOBJECTS := $(addprefix $(SHARED_OUTDIR)/, $(MEMENV_SOURCES:.cc=.o))
 
@@ -100,11 +101,8 @@ TESTHARNESS := $(STATIC_OUTDIR)/util/testharness.o $(TESTUTIL)
 STATIC_TESTOBJS := $(addprefix $(STATIC_OUTDIR)/, $(addsuffix .o, $(TESTS)))
 STATIC_UTILOBJS := $(addprefix $(STATIC_OUTDIR)/, $(addsuffix .o, $(UTILS)))
 STATIC_ALLOBJS := $(STATIC_LIBOBJECTS) $(STATIC_MEMENVOBJECTS) $(STATIC_TESTOBJS) $(STATIC_UTILOBJS) $(TESTHARNESS)
-
-STATIC_LIB = $(STATIC_OUTDIR)/libleveldb.a
-STATIC_MEMENVLIB = $(STATIC_OUTDIR)/libmemenv.a
-
-STATIC_UTILOBJS := $(addprefix $(SHARED_OUTDIR)/, $(addsuffix .o, $(UTILS)))
+DEVICE_ALLOBJS := $(DEVICE_LIBOBJECTS) $(DEVICE_MEMENVOBJECTS)
+SIMULATOR_ALLOBJS := $(SIMULATOR_LIBOBJECTS) $(SIMULATOR_MEMENVOBJECTS)
 
 default: all
 
@@ -140,36 +138,33 @@ $(SHARED_OUTDIR)/$(SHARED_LIB3): $(SHARED_LIBOBJECTS)
 
 endif  # PLATFORM_SHARED_EXT
 
-all: $(SHARED_LIBS) $(SHARED_PROGRAMS) $(STATIC_LIB) $(STATIC_PROGRAMS)
+all: $(SHARED_LIBS) $(SHARED_PROGRAMS) $(STATIC_OUTDIR)/libleveldb.a $(STATIC_OUTDIR)/libmemenv.a $(STATIC_PROGRAMS)
 
 check: $(STATIC_PROGRAMS)
 	for t in $(notdir $(TESTS)); do echo "***** Running $$t"; $(STATIC_OUTDIR)/$$t || exit 1; done
 
 clean:
-	-rm -rf out-static out-shared out-ios-x86 out-ios-arm
+	-rm -rf out-static out-shared out-ios-x86 out-ios-arm out-ios-universal
 	-rm -f build_config.mk
-	-rm -rf ios-x86/* ios-arm/*
-
-$(SHARED_OUTDIR):
-	mkdir $(SHARED_OUTDIR)
+	-rm -rf ios-x86 ios-arm
 
 $(STATIC_OUTDIR):
-	mkdir $(STATIC_OUTDIR)
+	mkdir $@
 
 $(STATIC_OUTDIR)/db: | $(STATIC_OUTDIR)
-	mkdir $(STATIC_OUTDIR)/db
+	mkdir $@
 
 $(STATIC_OUTDIR)/helpers/memenv: | $(STATIC_OUTDIR)
-	mkdir -p $(STATIC_OUTDIR)/helpers/memenv
+	mkdir -p $@
 
 $(STATIC_OUTDIR)/port: | $(STATIC_OUTDIR)
-	mkdir $(STATIC_OUTDIR)/port
+	mkdir $@
 
 $(STATIC_OUTDIR)/table: | $(STATIC_OUTDIR)
-	mkdir $(STATIC_OUTDIR)/table
+	mkdir $@
 
 $(STATIC_OUTDIR)/util: | $(STATIC_OUTDIR)
-	mkdir $(STATIC_OUTDIR)/util
+	mkdir $@
 
 .PHONY: STATIC_OBJDIRS
 STATIC_OBJDIRS: \
@@ -180,148 +175,237 @@ STATIC_OBJDIRS: \
 	$(STATIC_OUTDIR)/helpers/memenv
 
 $(SHARED_OUTDIR):
-	mkdir $(SHARED_OUTDIR)
+	mkdir $@
 
 $(SHARED_OUTDIR)/db: | $(SHARED_OUTDIR)
-	mkdir $(SHARED_OUTDIR)/db
+	mkdir $@
+
+$(SHARED_OUTDIR)/helpers/memenv: | $(SHARED_OUTDIR)
+	mkdir -p $@
 
 $(SHARED_OUTDIR)/port: | $(SHARED_OUTDIR)
-	mkdir $(SHARED_OUTDIR)/port
+	mkdir $@
 
 $(SHARED_OUTDIR)/table: | $(SHARED_OUTDIR)
-	mkdir $(SHARED_OUTDIR)/table
+	mkdir $@
 
 $(SHARED_OUTDIR)/util: | $(SHARED_OUTDIR)
-	mkdir $(SHARED_OUTDIR)/util
+	mkdir $@
 
 .PHONY: SHARED_OBJDIRS
 SHARED_OBJDIRS: \
 	$(SHARED_OUTDIR)/db \
 	$(SHARED_OUTDIR)/port \
 	$(SHARED_OUTDIR)/table \
-	$(SHARED_OUTDIR)/util
+	$(SHARED_OUTDIR)/util \
+	$(SHARED_OUTDIR)/helpers/memenv
+
+$(DEVICE_OUTDIR):
+	mkdir $@
+
+$(DEVICE_OUTDIR)/db: | $(DEVICE_OUTDIR)
+	mkdir $@
+
+$(DEVICE_OUTDIR)/helpers/memenv: | $(DEVICE_OUTDIR)
+	mkdir -p $@
+
+$(DEVICE_OUTDIR)/port: | $(DEVICE_OUTDIR)
+	mkdir $@
+
+$(DEVICE_OUTDIR)/table: | $(DEVICE_OUTDIR)
+	mkdir $@
+
+$(DEVICE_OUTDIR)/util: | $(DEVICE_OUTDIR)
+	mkdir $@
+
+.PHONY: DEVICE_OBJDIRS
+DEVICE_OBJDIRS: \
+	$(DEVICE_OUTDIR)/db \
+	$(DEVICE_OUTDIR)/port \
+	$(DEVICE_OUTDIR)/table \
+	$(DEVICE_OUTDIR)/util \
+	$(DEVICE_OUTDIR)/helpers/memenv
+
+$(SIMULATOR_OUTDIR):
+	mkdir $@
+
+$(SIMULATOR_OUTDIR)/db: | $(SIMULATOR_OUTDIR)
+	mkdir $@
+
+$(SIMULATOR_OUTDIR)/helpers/memenv: | $(SIMULATOR_OUTDIR)
+	mkdir -p $@
+
+$(SIMULATOR_OUTDIR)/port: | $(SIMULATOR_OUTDIR)
+	mkdir $@
+
+$(SIMULATOR_OUTDIR)/table: | $(SIMULATOR_OUTDIR)
+	mkdir $@
+
+$(SIMULATOR_OUTDIR)/util: | $(SIMULATOR_OUTDIR)
+	mkdir $@
+
+.PHONY: SIMULATOR_OBJDIRS
+SIMULATOR_OBJDIRS: \
+	$(SIMULATOR_OUTDIR)/db \
+	$(SIMULATOR_OUTDIR)/port \
+	$(SIMULATOR_OUTDIR)/table \
+	$(SIMULATOR_OUTDIR)/util \
+	$(SIMULATOR_OUTDIR)/helpers/memenv
 
 $(STATIC_ALLOBJS): | STATIC_OBJDIRS
-
+$(DEVICE_ALLOBJS): | DEVICE_OBJDIRS
+$(SIMULATOR_ALLOBJS): | SIMULATOR_OBJDIRS
 $(SHARED_ALLOBJS): | SHARED_OBJDIRS
 
-$(STATIC_LIB): $(STATIC_LIBOBJECTS)
+ifeq ($(PLATFORM), IOS)
+$(DEVICE_OUTDIR)/libleveldb.a: $(DEVICE_LIBOBJECTS)
+	rm -f $@
+	$(AR) -rs $@ $(DEVICE_LIBOBJECTS)
+
+$(SIMULATOR_OUTDIR)/libleveldb.a: $(SIMULATOR_LIBOBJECTS)
+	rm -f $@
+	$(AR) -rs $@ $(SIMULATOR_LIBOBJECTS)
+
+$(DEVICE_OUTDIR)/libmemenv.a: $(DEVICE_MEMENVOBJECTS)
+	rm -f $@
+	$(AR) -rs $@ $(DEVICE_MEMENVOBJECTS)
+
+$(SIMULATOR_OUTDIR)/libmemenv.a: $(SIMULATOR_MEMENVOBJECTS)
+	rm -f $@
+	$(AR) -rs $@ $(SIMULATOR_MEMENVOBJECTS)
+
+# For iOS, create universal object libraries to be used on both the simulator and
+# a device.
+$(STATIC_OUTDIR)/libleveldb.a: $(STATIC_OUTDIR) $(DEVICE_OUTDIR)/libleveldb.a $(SIMULATOR_OUTDIR)/libleveldb.a
+	lipo -create $(DEVICE_OUTDIR)/libleveldb.a $(SIMULATOR_OUTDIR)/libleveldb.a -output $@
+
+$(STATIC_OUTDIR)/libmemenv.a: $(STATIC_OUTDIR) $(DEVICE_OUTDIR)/libmemenv.a $(SIMULATOR_OUTDIR)/libmemenv.a
+	lipo -create $(DEVICE_OUTDIR)/libmemenv.a $(SIMULATOR_OUTDIR)/libmemenv.a -output $@
+else
+$(STATIC_OUTDIR)/libleveldb.a:$(STATIC_LIBOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(STATIC_LIBOBJECTS)
 
-$(SHARED_MEMENVLIB): Makefile $(SHARED_MEMENVOBJECTS)
+$(STATIC_OUTDIR)/libmemenv.a:$(STATIC_MEMENVOBJECTS)
+	rm -f $@
+	$(AR) -rs $@ $(STATIC_MEMENVOBJECTS)
+endif
+
+$(SHARED_MEMENVLIB):$(SHARED_MEMENVOBJECTS)
 	rm -f $@
 	$(AR) -rs $@ $(SHARED_MEMENVOBJECTS)
 
-$(STATIC_OUTDIR)/db_bench: Makefile db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/db_bench:db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/db_bench_sqlite3: Makefile doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
+$(STATIC_OUTDIR)/db_bench_sqlite3:doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
 
-$(STATIC_OUTDIR)/db_bench_tree_db: Makefile doc/bench/db_bench_tree_db.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) doc/bench/db_bench_tree_db.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lkyotocabinet $(LIBS)
+$(STATIC_OUTDIR)/db_bench_tree_db:doc/bench/db_bench_tree_db.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) doc/bench/db_bench_tree_db.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lkyotocabinet $(LIBS)
 
-$(STATIC_OUTDIR)/leveldbutil: Makefile db/leveldbutil.cc $(STATIC_LIBOBJECTS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/leveldbutil.cc $(STATIC_LIBOBJECTS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/leveldbutil:db/leveldbutil.cc $(STATIC_LIBOBJECTS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/leveldbutil.cc $(STATIC_LIBOBJECTS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/arena_test: Makefile util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/arena_test:util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/autocompact_test: Makefile db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/autocompact_test:db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/bloom_test: Makefile util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/bloom_test:util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/bloom_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/c_test: Makefile $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/c_test:$(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/db/c_test.o $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/cache_test: Makefile util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/cache_test:util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/cache_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/coding_test: Makefile util/coding_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/coding_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/coding_test:util/coding_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/coding_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/corruption_test: Makefile db/corruption_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/corruption_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/corruption_test:db/corruption_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/corruption_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/crc32c_test: Makefile util/crc32c_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/crc32c_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/crc32c_test:util/crc32c_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/crc32c_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/db_test: Makefile db/db_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/db_test:db/db_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/dbformat_test: Makefile db/dbformat_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/dbformat_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/dbformat_test:db/dbformat_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/dbformat_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/env_test: Makefile util/env_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/env_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/env_test:util/env_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/env_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/fault_injection_test: Makefile db/fault_injection_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/fault_injection_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/fault_injection_test:db/fault_injection_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/fault_injection_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/filename_test: Makefile db/filename_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/filename_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/filename_test:db/filename_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/filename_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/filter_block_test: Makefile table/filter_block_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) table/filter_block_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/filter_block_test:table/filter_block_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) table/filter_block_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/hash_test: Makefile util/hash_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) util/hash_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/hash_test:util/hash_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/hash_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/issue178_test: Makefile issues/issue178_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) issues/issue178_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/issue178_test:issues/issue178_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) issues/issue178_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/issue200_test: Makefile issues/issue200_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) issues/issue200_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/issue200_test:issues/issue200_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) issues/issue200_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/log_test: Makefile db/log_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/log_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/log_test:db/log_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/log_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/recovery_test: Makefile db/recovery_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/recovery_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/recovery_test:db/recovery_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/recovery_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/table_test: Makefile table/table_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) table/table_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/table_test:table/table_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) table/table_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/skiplist_test: Makefile db/skiplist_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/skiplist_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/skiplist_test:db/skiplist_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/skiplist_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/version_edit_test: Makefile db/version_edit_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/version_edit_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/version_edit_test:db/version_edit_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/version_edit_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/version_set_test: Makefile db/version_set_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/version_set_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/version_set_test:db/version_set_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/version_set_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/write_batch_test: Makefile db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+$(STATIC_OUTDIR)/write_batch_test:db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/write_batch_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_MEMENVLIB): Makefile $(STATIC_MEMENVOBJECTS)
-	rm -f $@
-	$(AR) -rs $@ $(STATIC_MEMENVOBJECTS)
+$(STATIC_OUTDIR)/memenv_test:$(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_OUTDIR)/libmemenv.a $(STATIC_OUTDIR)/libleveldb.a $(TESTHARNESS)
+	$(XCRUN) $(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_OUTDIR)/libmemenv.a $(STATIC_OUTDIR)/libleveldb.a $(TESTHARNESS) -o $@ $(LIBS)
 
-$(STATIC_OUTDIR)/memenv_test: Makefile $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS)
-	$(XCRUN) $(CXX) $(LDFLAGS) $(STATIC_OUTDIR)/helpers/memenv/memenv_test.o $(STATIC_MEMENVLIB) $(STATIC_LIB) $(TESTHARNESS) -o $@ $(LIBS)
-
-$(SHARED_OUTDIR)/db_bench: Makefile $(SHARED_OUTDIR)/db/db_bench.o $(SHARED_LIBS) $(TESTUTIL)
+$(SHARED_OUTDIR)/db_bench:$(SHARED_OUTDIR)/db/db_bench.o $(SHARED_LIBS) $(TESTUTIL)
 	$(XCRUN) $(CXX) $(LDFLAGS) $(CXXFLAGS) $(PLATFORM_SHARED_CFLAGS) $(SHARED_OUTDIR)/db/db_bench.o $(TESTUTIL) $(SHARED_OUTDIR)/$(SHARED_LIB3) -o $@ $(LIBS)
 
 .PHONY: run-shared
 run-shared: $(SHARED_OUTDIR)/db_bench
 	LD_LIBRARY_PATH=$(SHARED_OUTDIR) $(SHARED_OUTDIR)/db_bench
 
+$(SIMULATOR_OUTDIR)/%.o: %.cc
+	xcrun -sdk iphonesimulator $(CXX) $(CXXFLAGS) $(SIMULATOR_CFLAGS) -c $< -o $@
+
+$(DEVICE_OUTDIR)/%.o: %.cc
+	xcrun -sdk iphoneos $(CXX) $(CXXFLAGS) $(DEVICE_CFLAGS) -c $< -o $@
+
+$(SIMULATOR_OUTDIR)/%.o: %.c
+	xcrun -sdk iphonesimulator $(CC) $(CFLAGS) $(SIMULATOR_CFLAGS) -c $< -o $@
+
+$(DEVICE_OUTDIR)/%.o: %.c
+	xcrun -sdk iphoneos $(CC) $(CFLAGS) $(DEVICE_CFLAGS) -c $< -o $@
+
 $(STATIC_OUTDIR)/%.o: %.cc
-	$(XCRUN) $(CXX) $(CXXFLAGS) -c $< -o $@
-ifeq ($(PLATFORM), IOS)
-	xcrun lipo $@ -create -output $@
-endif
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(STATIC_OUTDIR)/%.o: %.c
-	$(XCRUN) $(CC) $(CFLAGS) -c $< -o $@
-ifeq ($(PLATFORM), IOS)
-	xcrun lipo $@ -create -output $@
-endif
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(SHARED_OUTDIR)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) $(PLATFORM_SHARED_CFLAGS) -c $< -o $@
