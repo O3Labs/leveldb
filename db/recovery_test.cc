@@ -97,6 +97,7 @@ class RecoveryTest {
   }
 
   size_t DeleteLogFiles() {
+    Close();
     std::vector<uint64_t> logs = GetFiles(kLogFile);
     for (size_t i = 0; i < logs.size(); i++) {
       ASSERT_OK(env_->DeleteFile(LogName(logs[i]))) << LogName(logs[i]);

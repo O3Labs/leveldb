@@ -15,6 +15,18 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# For parallel builds in Visual Studio.
+# set(CMAKE_CXX_FLAGS /MP)
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
+
+if (WIN32)
+  set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
+  # TODO(cmumford): Make UNICODE configurable for Windows.
+  add_definitions(-D_UNICODE -DUNICODE)
+else (WIN32)
+  set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_POSIX)
+endif (WIN32)
+
 option(LEVELDB_BUILD_TESTS "Build LevelDB's unit tests" ON)
 option(LEVELDB_BUILD_BENCHMARKS "Build LevelDB's benchmarks" ON)
 option(LEVELDB_INSTALL "Install LevelDB's header and library" ON)
@@ -172,12 +184,19 @@ target_sources(leveldb
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/write_batch.h"
 )
 
-# POSIX code is specified separately so we can leave it out in the future.
+if (WIN32)
+target_sources(leveldb
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/util/env_windows.cc"
+    "${PROJECT_SOURCE_DIR}/util/windows_logger.h"
+)
+else (WIN32)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_SOURCE_DIR}/util/env_posix.cc"
     "${PROJECT_SOURCE_DIR}/util/posix_logger.h"
 )
+endif (WIN32)
 
 # MemEnv is not part of the interface and could be pulled to a separate library.
 target_sources(leveldb
@@ -196,7 +215,7 @@ target_compile_definitions(leveldb
     # Used by include/export.h when building shared libraries.
     LEVELDB_COMPILE_LIBRARY
     # Used by port/port.h.
-    LEVELDB_PLATFORM_POSIX=1
+    ${LEVELDB_PLATFORM_NAME}=1
 )
 if (NOT HAVE_CXX17_HAS_INCLUDE)
   target_compile_definitions(leveldb
@@ -258,7 +277,7 @@ if(LEVELDB_BUILD_TESTS)
     target_link_libraries("${test_target_name}" leveldb)
     target_compile_definitions("${test_target_name}"
       PRIVATE
-        LEVELDB_PLATFORM_POSIX=1
+        ${LEVELDB_PLATFORM_NAME}=1
     )
     if (NOT HAVE_CXX17_HAS_INCLUDE)
       target_compile_definitions("${test_target_name}"
@@ -306,8 +325,12 @@ if(LEVELDB_BUILD_TESTS)
     leveldb_test("${PROJECT_SOURCE_DIR}/util/logging_test.cc")
 
     # TODO(costan): This test also uses
-    #               "${PROJECT_SOURCE_DIR}/util/env_posix_test_helper.h"
-    leveldb_test("${PROJECT_SOURCE_DIR}/util/env_posix_test.cc")
+    #               "${PROJECT_SOURCE_DIR}/util/env_{posix|windows}_test_helper.h"
+    if (WIN32)
+      leveldb_test("${PROJECT_SOURCE_DIR}/util/env_windows_test.cc")
+    else (WIN32)
+      leveldb_test("${PROJECT_SOURCE_DIR}/util/env_posix_test.cc")
+    endif (WIN32)
   endif(NOT BUILD_SHARED_LIBS)
 endif(LEVELDB_BUILD_TESTS)
 
@@ -331,7 +354,7 @@ if(LEVELDB_BUILD_BENCHMARKS)
     target_link_libraries("${bench_target_name}" leveldb)
     target_compile_definitions("${bench_target_name}"
       PRIVATE
-        LEVELDB_PLATFORM_POSIX=1
+        ${LEVELDB_PLATFORM_NAME}=1
     )
     if (NOT HAVE_CXX17_HAS_INCLUDE)
       target_compile_definitions("${bench_target_name}"

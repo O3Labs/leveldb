@@ -20,6 +20,18 @@
 #include "leveldb/export.h"
 #include "leveldb/status.h"
 
+#if defined(LEVELDB_PLATFORM_WINDOWS)
+// leveldb has a method named "DeleteFile" which conflicts with
+// the macro in windows.h.
+#if !defined(DeleteFile)
+#ifdef UNICODE
+#define DeleteFile DeleteFileW
+#else
+#define DeleteFile DeleteFileA
+#endif  // !UNICODE
+#endif  // !defined(DeleteFile)
+#endif  // defined(LEVELDB_PLATFORM_WINDOWS)
+
 namespace leveldb {
 
 class FileLock;
