@@ -202,19 +202,23 @@ class WindowsRandomAccessFile : public RandomAccessFile {
 
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
-    DWORD bytes_read;
-    LARGE_INTEGER distance;
-    distance.QuadPart = offset;
-    Status s;
-    if (SetFilePointerEx(handle_.get(), distance, nullptr, FILE_BEGIN) &&
-        ReadFile(handle_.get(), scratch, static_cast<DWORD>(n), &bytes_read,
-                 nullptr)) {
-      *result = Slice(scratch, bytes_read);
-    } else {
-      s = Status::IOError(filename_, GetWindowsErrorMessage(GetLastError()));
-      *result = Slice(scratch, 0);
+    DWORD bytes_read(0);
+    OVERLAPPED overlapped = {0};
+
+    overlapped.OffsetHigh = (uint32_t)((offset & 0xFFFFFFFF00000000LL) >> 32);
+    overlapped.Offset = (uint32_t)(offset & 0xFFFFFFFFLL);
+    SetLastError(0);
+    if (!ReadFile(handle_.get(), scratch, static_cast<DWORD>(n), &bytes_read,
+                  &overlapped)) {
+      DWORD err = GetLastError();
+      if (err != ERROR_HANDLE_EOF) {
+        *result = Slice(scratch, 0);
+        return Status::IOError(filename_, GetWindowsErrorMessage(err));
+      }
     }
-    return s;
+
+    *result = Slice(scratch, bytes_read);
+    return Status::OK();
   }
 };
 
