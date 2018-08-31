@@ -187,6 +187,7 @@ target_sources(leveldb
 if (WIN32)
 target_sources(leveldb
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/port/port_windows.h"
     "${PROJECT_SOURCE_DIR}/util/env_windows.cc"
     "${PROJECT_SOURCE_DIR}/util/windows_logger.h"
 )
