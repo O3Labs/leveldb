@@ -17,7 +17,7 @@ class EnvWindowsTest {
   Env* env_;
   EnvWindowsTest() : env_(Env::Default()) {}
 
-  static void SetFileLimits(int read_only_file_limit, int mmap_limit) {
+  static void SetFileLimits(int mmap_limit) {
     EnvWindowsTestHelper::SetReadOnlyMMapLimit(mmap_limit);
   }
 };
@@ -35,7 +35,8 @@ TEST(EnvWindowsTest, TestOpenOnRead) {
   fclose(f);
 
   // Open test file some number above the sum of the two limits to force
-  // open-on-read behavior of Windows Env leveldb::RandomAccessFile.
+  // leveldb::WindowsEnv to switch from mapping the file into memory
+  // to basic file reading.
   const int kNumFiles = kMMapLimit + 5;
   leveldb::RandomAccessFile* files[kNumFiles] = {0};
   for (int i = 0; i < kNumFiles; i++) {
@@ -55,4 +56,8 @@ TEST(EnvWindowsTest, TestOpenOnRead) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }
+int main(int argc, char** argv) {
+  // All tests currently run with the same read-only file limits.
+  leveldb::EnvWindowsTest::SetFileLimits(leveldb::kMMapLimit);
+  return leveldb::test::RunAllTests();
+}

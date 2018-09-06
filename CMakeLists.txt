@@ -15,10 +15,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# For parallel builds in Visual Studio.
-# set(CMAKE_CXX_FLAGS /MP)
-add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP>)
-
 if (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
   # TODO(cmumford): Make UNICODE configurable for Windows.
@@ -187,7 +183,6 @@ target_sources(leveldb
 if (WIN32)
 target_sources(leveldb
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/port/port_windows.h"
     "${PROJECT_SOURCE_DIR}/util/env_windows.cc"
     "${PROJECT_SOURCE_DIR}/util/windows_logger.h"
 )

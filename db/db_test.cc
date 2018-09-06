@@ -470,11 +470,11 @@ class DBTest {
   }
 
   // Do n memtable compactions, each of which produces an sstable
-  // covering the range [small,large].
-  void MakeTables(int n, const std::string& small_key, const std::string& large) {
+  // covering the range [small_key,large_key].
+  void MakeTables(int n, const std::string& small_key, const std::string& large_key) {
     for (int i = 0; i < n; i++) {
       Put(small_key, "begin");
-      Put(large, "end");
+      Put(large_key, "end");
       dbfull()->TEST_CompactMemTable();
     }
   }
