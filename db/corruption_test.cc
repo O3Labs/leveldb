@@ -41,6 +41,7 @@ class CorruptionTest {
     EnvWindowsTestHelper::SetReadOnlyMMapLimit(mmap_limit);
   }
 
+  // TODO(cmumford): Modify corruption_test to use MemEnv and remove.
   static void RelaxFilePermissions() {
     EnvWindowsTestHelper::RelaxFilePermissions();
   }
