@@ -2,29 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 #include <iostream>
-#include <sstream>
 #include <string>
-#include <map>
+#include <utility>
 #include <vector>
-#include <memory>
-
-#include <math.h>
 
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 #include <util/testharness.h>
 
-using namespace std;
-
 namespace leveldb {
 
 namespace {
 
-unsigned int random(unsigned int max) {
-  return rand() % max;
-}
+unsigned int random(unsigned int max) { return std::rand() % max; }
 
-string newString(int32_t index) {
+std::string newString(int32_t index) {
   const unsigned int len = 1024;
   char bytes[len];
   unsigned int i = 0;
@@ -36,12 +28,12 @@ string newString(int32_t index) {
     bytes[i] = 'a' + random(26);
     ++i;
   }
-  return string(bytes, sizeof(bytes));
+  return std::string(bytes, sizeof(bytes));
 }
 
 }  // namespace
 
-class Issue320 { };
+class Issue320 {};
 
 TEST(Issue320, Test) {
   srandom(0);
@@ -49,8 +41,8 @@ TEST(Issue320, Test) {
   bool delete_before_put = false;
   bool keep_snapshots = true;
 
-  vector<pair<string, string>*> test_map(10000, nullptr);
-  vector<Snapshot const*> snapshots(100, nullptr);
+  std::vector<std::pair<std::string, std::string>*> test_map(10000, nullptr);
+  std::vector<Snapshot const*> snapshots(100, nullptr);
 
   DB* db;
   Options options;
@@ -62,14 +54,14 @@ TEST(Issue320, Test) {
   unsigned int target_size = 10000;
   unsigned int num_items = 0;
   unsigned long count = 0;
-  string key;
-  string value, old_value;
+  std::string key;
+  std::string value, old_value;
 
-  WriteOptions writeOptions;
-  ReadOptions readOptions;
+  WriteOptions write_options;
+  ReadOptions read_options;
   while (count < 200000) {
     if ((++count % 1000) == 0) {
-      cout << "count: " << count << endl;
+      std::cout << "count: " << count << std::endl;
     }
 
     unsigned int index = random(test_map.size());
@@ -77,18 +69,20 @@ TEST(Issue320, Test) {
 
     if (test_map[index] == nullptr) {
       num_items++;
-      test_map[index] =
-          new pair<string, string>(newString(index), newString(index));
+      test_map[index] = new std::pair<std::string, std::string>(
+          newString(index), newString(index));
       batch.Put(test_map[index]->first, test_map[index]->second);
     } else {
-      ASSERT_OK(db->Get(readOptions, test_map[index]->first, &old_value));
+      ASSERT_OK(db->Get(read_options, test_map[index]->first, &old_value));
       if (old_value != test_map[index]->second) {
-        cout << "ERROR incorrect value returned by Get" << endl;
-        cout << "  count=" << count << endl;
-        cout << "  old value=" << old_value << endl;
-        cout << "  test_map[index]->second=" << test_map[index]->second << endl;
-        cout << "  test_map[index]->first=" << test_map[index]->first << endl;
-        cout << "  index=" << index << endl;
+        std::cout << "ERROR incorrect value returned by Get" << std::endl;
+        std::cout << "  count=" << count << std::endl;
+        std::cout << "  old value=" << old_value << std::endl;
+        std::cout << "  test_map[index]->second=" << test_map[index]->second
+                  << std::endl;
+        std::cout << "  test_map[index]->first=" << test_map[index]->first
+                  << std::endl;
+        std::cout << "  index=" << index << std::endl;
         ASSERT_NE(old_value, test_map[index]->second);
       }
 
@@ -104,7 +98,7 @@ TEST(Issue320, Test) {
       }
     }
 
-    ASSERT_OK(db->Write(writeOptions, &batch));
+    ASSERT_OK(db->Write(write_options, &batch));
 
     if (keep_snapshots && random(10) == 0) {
       unsigned int i = random(snapshots.size());
@@ -134,6 +128,4 @@ TEST(Issue320, Test) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) {
-  return leveldb::test::RunAllTests();
-}
+int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }
