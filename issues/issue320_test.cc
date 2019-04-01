@@ -83,7 +83,7 @@ TEST(Issue320, Test) {
         std::cout << "  test_map[index]->first=" << test_map[index]->first
                   << std::endl;
         std::cout << "  index=" << index << std::endl;
-        ASSERT_NE(old_value, test_map[index]->second);
+        ASSERT_EQ(old_value, test_map[index]->second);
       }
 
       if (num_items >= target_size && random(100) > 30) {
