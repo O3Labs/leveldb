@@ -40,6 +40,14 @@ mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 ```
 
+### Build shared library for POSIX
+
+```bash
+mkdir -p build && cd build
+cmake -DBUILD_SHARED_LIBS=true -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
+
+```
+
 ### Building for Windows
 
 First generate the Visual Studio 2017 project/solution files:
